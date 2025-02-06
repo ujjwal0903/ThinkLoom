@@ -1,10 +1,13 @@
 import Logo from "../imgs/logo.png"
 import { Link, Outlet } from "react-router-dom"
-import { useState } from "react"
+import { useContext, useState } from "react"
+import { UserContext } from "../App"
 
 const Navbar = () => {
 
     const [searchBoxVisibility, setSearchBoxVisibility] = useState(false)
+
+    const { userAuth, userAuth: {access_token, profile_img} } = useContext(UserContext)
 
     return(
         <>
@@ -41,13 +44,35 @@ const Navbar = () => {
                         <p>Write</p>
                     </Link>
 
-                    <Link to="/signin" className="btn-dark py-2">
-                        Sign In
-                    </Link>
 
-                    <Link to="/signup" className="btn-light py-2 hidden md:block">
-                        Sign Up
-                    </Link>
+                    {
+                        access_token ?
+                            <>
+                                <Link to="/dashboard/notification">
+                                    <button className="w-12 h-12 rounded-full bg-grey relative hover:bg-black/10">
+                                        <i className="fi fi-rr-bell text-2xl mt-1"></i>
+                                    </button>
+                                </Link>
+
+                                <div className="relative">
+                                    <button className="w-12 h-12 mt-1">
+                                        <img src={profile_img} alt="profile_img" className="wf-full h-full object-cover rounded-full"/>
+                                        
+                                    </button>
+                                </div>
+                            </>
+                        :
+                            <>
+                                <Link to="/signin" className="btn-dark py-2">
+                                    Sign In
+                                </Link>
+
+                                <Link to="/signup" className="btn-light py-2 hidden md:block">
+                                    Sign Up
+                                </Link>
+                            </>
+                    }
+
                 </div>
             </nav>
 
