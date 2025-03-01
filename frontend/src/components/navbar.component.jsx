@@ -2,13 +2,25 @@ import Logo from "../imgs/logo.png"
 import { Link, Outlet } from "react-router-dom"
 import { useContext, useState } from "react"
 import { UserContext } from "../App"
+import UserNavigationPanel from "./user-navigation.component"
 
 const Navbar = () => {
 
     const [searchBoxVisibility, setSearchBoxVisibility] = useState(false)
+    const [userNavPanel, setUserNavPanel] = useState(false)
+
 
     const { userAuth, userAuth: {access_token, profile_img} } = useContext(UserContext)
 
+    const handleUserNavPanel = () => {
+        setUserNavPanel(currentVal => !currentVal)
+    }
+
+    const handleBlur = () => {
+        setTimeout(()=>{
+            setUserNavPanel(false)
+        }, 200)
+    }
     return(
         <>
             <nav className="navbar">
@@ -44,7 +56,6 @@ const Navbar = () => {
                         <p>Write</p>
                     </Link>
 
-
                     {
                         access_token ?
                             <>
@@ -54,11 +65,18 @@ const Navbar = () => {
                                     </button>
                                 </Link>
 
-                                <div className="relative">
+                                <div className="relative" tabIndex={0} onClick={handleUserNavPanel} onBlur={handleBlur}>
                                     <button className="w-12 h-12 mt-1">
-                                        <img src={profile_img} alt="profile_img" className="wf-full h-full object-cover rounded-full"/>
+                                        <img src={profile_img} alt="profile_img" className="w-full h-full object-cover rounded-full"/>
                                         
                                     </button>
+
+                                    {
+                                        userNavPanel ? 
+                                            <UserNavigationPanel />
+                                        :
+                                            ""
+                                    } 
                                 </div>
                             </>
                         :

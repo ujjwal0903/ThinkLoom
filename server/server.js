@@ -5,12 +5,19 @@ import bcrypt from "bcrypt";
 import { nanoid } from "nanoid";
 import jwt from 'jsonwebtoken';
 import cors from 'cors';
+import admin from "firebase-admin"
+import serviceAccountKey from "./thinkloom-12f76-firebase-adminsdk-fbsvc-184b6f2d05.json" assert { type: "json" };
+import { getAuth } from "firebase-admin/auth"
 
 // Schemas 
 import User from "./Schema/User.js"
 
 const server = express()
 let PORT = 3000
+
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccountKey)
+})
 
 let emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/; // regex for email
 let passwordRegex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{6,20}$/; // regex for password
@@ -89,28 +96,85 @@ server.post("/signup", (req, res) =>{
 server.post("/signin", (req,res) =>{
     let{ email, password } = req.body;
 
-    User.findOne({ "personal_info.email" : email }).then(
+    User.findOne({ "personal_info.email" : email })
+    .then(
         (user) =>{
             if (!user){
                 return res.status(403).json({"error": "Email not Found"})
             }
-
-            bcrypt.compare(password, user.personal_info.password, (err, result)=>{
-                if(err){
-                    return res.status(403).json({"error": "Error occured while login, please try again"})
-                }
-                if(!result){
-                    return res.status(403).json({"error": "Incorrect password"})
-                }else{
-                    return res.status(200).json(formatDataToSend(user))
-
-                }
-            })
+            
+            if(!user.google_auth){
+                
+                bcrypt.compare(password, user.personal_info.password, (err, result)=>{
+                    if(err){
+                        return res.status(403).json({"error": "Error occured while login, please try again"})
+                    }
+                    if(!result){
+                        return res.status(403).json({"error": "Incorrect password"})
+                    }else{
+                        return res.status(200).json(formatDataToSend(user))
+                        
+                    }
+                })
+            }else{
+                return res.status(403).json({"error": "Account was created using Google. Try logging in with Google"})
+            }
         }
     )
     .catch(err =>{
         return res.status(500).json({"error": err.message})
     })
+})
+
+server.post("/google-auth", async(req, res) => {
+    let { access_token } = req.body
+    getAuth()
+    .verifyIdToken(access_token)
+    .then(async (decodedUser) => {
+        let { email, name, picture } = decodedUser
+
+        picture = picture.replace("s96-c", "s384-c")
+
+        let user = await User.findOne({"personal_info.email" : email}).select("personal_info.fullname personal_info.username personal_info.profile_img google_auth")
+        .then((u) => {
+            return u || null
+        })
+        .catch(err =>{
+            return res.status(500).json({"error": err.message})
+        })
+
+        if(user){
+            if(!user.google_auth){
+                return res.status(403).json({"error": "This email has signed up without Google. Please log in with password to access the account"})
+            }   
+        }
+        else{
+            
+            let username = await generateUsername(email)
+            user = new User({
+                personal_info : {
+                    fullname: name,
+                    email,
+                    // profile_img : picture,
+                    username
+                },
+                google_auth: true
+            })
+            await user.save().then((u) => {
+                user = u
+            })
+            .catch(err => {
+                return res.status(500).json({"error": err.message})
+                
+            })
+        }
+        return res.status(200).json(formatDataToSend(user))
+
+    })
+    .catch(err => {
+        return res.status(500).json({"error": "Failed to authenticate you with Google, Try with some other Google account "})
+    })
+
 })
 
 server.listen(PORT, () => {
