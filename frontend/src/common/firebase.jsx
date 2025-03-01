@@ -2,7 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth"
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDRoTOnN931_UNg6tUA0VOZVOcXsaSWfnE",
+  apiKey: "process.env.FIREBASE_API_KEY",
   authDomain: "thinkloom-12f76.firebaseapp.com",
   projectId: "thinkloom-12f76",
   storageBucket: "thinkloom-12f76.firebasestorage.app",
